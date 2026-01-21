@@ -4,7 +4,7 @@
 
 Fish is a weather visualization app that compares forecasts from multiple meteorological models (ECMWF, GFS, GraphCast, NBM, HRRR, ICON) to help users make informed decisions about upcoming weather.
 
-**Live URL:** https://fish-weather-production.up.railway.app
+**Live URL:** https://fish-production-dccf.up.railway.app
 
 ## Tech Stack
 
