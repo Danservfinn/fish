@@ -16,7 +16,10 @@ import { formatDate, cmToInches } from '@/lib/utils/format';
 interface DailyComparisonChartProps {
   models: {
     ecmwf: ModelForecast | null;
+    ecmwf_aifs: ModelForecast | null;
     gfs: ModelForecast | null;
+    graphcast: ModelForecast | null;
+    nbm: ModelForecast | null;
     hrrr: ModelForecast | null;
     icon: ModelForecast | null;
   };

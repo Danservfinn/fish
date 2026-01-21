@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
@@ -9,7 +10,10 @@ import { useWeatherModels } from '@/lib/hooks/useWeatherModels';
 import ModelAgreementMeter from './ModelAgreementMeter';
 import DailyComparisonChart from './DailyComparisonChart';
 import ModelTooltip from './ModelTooltip';
-import { MODEL_INFO, MODEL_COLORS, type ModelName } from '@/types/forecast';
+import TimePeriodSelector from './TimePeriodSelector';
+import PrecipModeSelector from './PrecipModeSelector';
+import ModelBreakdownCard from './ModelBreakdownCard';
+import { MODEL_INFO, MODEL_COLORS, type ModelName, type TimePeriod, type PrecipMode } from '@/types/forecast';
 import { formatSnow } from '@/lib/utils/format';
 
 interface ForecastPanelProps {
@@ -20,6 +24,16 @@ interface ForecastPanelProps {
 export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const { data, isLoading, error } = useWeatherModels(lat, lon);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('7d');
+  const [precipMode, setPrecipMode] = useState<PrecipMode>('snow');
+
+  // Get time period label
+  const timePeriodLabel = {
+    '24h': 'Next 24 Hours',
+    '48h': 'Next 48 Hours',
+    '7d': 'Next 7 Days',
+    'custom': 'Custom Range',
+  }[timePeriod];
 
   const content = (
     <div className="space-y-4 p-4 md:p-4">
@@ -42,18 +56,35 @@ export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
         </div>
       ) : data ? (
         <>
+          {/* Time Period Selector */}
+          <TimePeriodSelector value={timePeriod} onChange={setTimePeriod} />
+
+          {/* Precipitation Mode Selector */}
+          <PrecipModeSelector value={precipMode} onChange={setPrecipMode} />
+
           {/* Agreement Meter */}
           <ModelAgreementMeter agreement={data.summary.agreement} />
 
-          {/* Model Comparison */}
+          {/* Model Comparison Chart */}
           <Card>
             <CardHeader className="pb-2 px-3 md:px-6">
-              <CardTitle className="text-base">Snow Forecast</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                {precipMode === 'snow' && '❄️'}
+                {precipMode === 'rain' && '💧'}
+                {precipMode === 'total' && '🌧️'}
+                {precipMode === 'snow' ? 'Snow' : precipMode === 'rain' ? 'Rain' : 'Precipitation'} Forecast
+              </CardTitle>
             </CardHeader>
             <CardContent className="px-2 md:px-6">
-              <DailyComparisonChart models={data.models} metric="snow" />
+              <DailyComparisonChart
+                models={data.models}
+                metric={precipMode === 'rain' ? 'precip' : 'snow'}
+              />
             </CardContent>
           </Card>
+
+          {/* Model Breakdown Card */}
+          <ModelBreakdownCard data={data} timePeriod={timePeriodLabel} />
 
           {/* Model Legend with Tooltips */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-2">
@@ -62,6 +93,7 @@ export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
               if (!model) return null;
               const info = MODEL_INFO[key];
               const totalSnow = model.daily.reduce((sum, d) => sum + (d.snowfallSum || 0), 0);
+              const isAI = info.organization.includes('AI');
               return (
                 <div
                   key={key}
@@ -73,7 +105,14 @@ export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
                   />
                   <div className="flex-1 min-w-0">
                     <ModelTooltip model={key}>
-                      <span className="font-medium text-sm md:text-xs">{info.name}</span>
+                      <span className="font-medium text-sm md:text-xs flex items-center gap-1">
+                        {info.name}
+                        {isAI && (
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-400">
+                            AI
+                          </span>
+                        )}
+                      </span>
                     </ModelTooltip>
                     <div className="text-muted-foreground text-sm md:text-xs">{formatSnow(totalSnow)}</div>
                   </div>
@@ -84,7 +123,7 @@ export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
 
           {/* Model Info Note */}
           <p className="text-xs text-muted-foreground text-center px-2">
-            Tap model names for details and source links
+            Tap model names for details • AI models use machine learning
           </p>
         </>
       ) : null}
@@ -96,12 +135,12 @@ export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
       <Sheet open={true} modal={false}>
         <SheetContent
           side="right"
-          className="w-[400px] p-0 border-l border-border bg-background/95 backdrop-blur-sm overflow-y-auto"
+          className="w-[420px] p-0 border-l border-border bg-background/95 backdrop-blur-sm overflow-y-auto"
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
         >
           <SheetHeader className="p-4 border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10">
-            <SheetTitle>Fish 🐟 Snow Forecast</SheetTitle>
+            <SheetTitle>Weather Model Comparison</SheetTitle>
           </SheetHeader>
           {content}
         </SheetContent>
@@ -113,7 +152,7 @@ export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
     <Drawer open={true} modal={false}>
       <DrawerContent className="max-h-[85vh]">
         <DrawerHeader className="border-b border-border">
-          <DrawerTitle>Fish 🐟 Snow Forecast</DrawerTitle>
+          <DrawerTitle>Weather Model Comparison</DrawerTitle>
         </DrawerHeader>
         <div className="overflow-auto pb-safe">
           {content}
@@ -126,9 +165,15 @@ export default function ForecastPanel({ lat, lon }: ForecastPanelProps) {
 function LoadingSkeleton() {
   return (
     <div className="space-y-4">
+      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-9 w-full" />
       <Skeleton className="h-20 w-full" />
       <Skeleton className="h-40 md:h-48 w-full" />
+      <Skeleton className="h-48 w-full" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <Skeleton className="h-14 md:h-12 w-full" />
+        <Skeleton className="h-14 md:h-12 w-full" />
+        <Skeleton className="h-14 md:h-12 w-full" />
         <Skeleton className="h-14 md:h-12 w-full" />
         <Skeleton className="h-14 md:h-12 w-full" />
         <Skeleton className="h-14 md:h-12 w-full" />
