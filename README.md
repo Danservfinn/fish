@@ -1,6 +1,6 @@
 # Fish - Multi-Model Weather Forecast Comparison
 
-🌐 **Live:** https://fish-weather-production.up.railway.app
+🌐 **Live:** https://fish-production-dccf.up.railway.app
 
 A weather visualization app that compares forecasts from multiple meteorological models to help you make informed decisions about upcoming weather.
 
@@ -107,7 +107,7 @@ All weather data is fetched from [Open-Meteo](https://open-meteo.com/), a free a
 ## Deployment
 
 Deployed on [Railway](https://railway.app):
-- **Production URL**: https://fish-weather-production.up.railway.app
+- **Production URL**: https://fish-production-dccf.up.railway.app
 - Auto-deploys on push to `main` branch
 - Uses Next.js standalone output for optimized container size
 

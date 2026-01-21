@@ -149,7 +149,7 @@ International → ECMWF model
 ## Deployment
 
 **Platform:** Railway
-**URL:** https://fish-weather-production.up.railway.app
+**URL:** https://fish-production-dccf.up.railway.app
 
 ### Build Configuration
 - Uses Next.js `output: 'standalone'` for optimized Docker image
