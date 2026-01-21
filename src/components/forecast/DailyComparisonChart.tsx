@@ -62,29 +62,32 @@ export default function DailyComparisonChart({ models, metric }: DailyComparison
   );
 
   return (
-    <div className="w-full h-64">
+    <div className="w-full h-48 md:h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+          margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
         >
           <XAxis
             dataKey="date"
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
             axisLine={{ stroke: 'hsl(var(--border))' }}
             tickLine={{ stroke: 'hsl(var(--border))' }}
+            interval={0}
           />
           <YAxis
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
             axisLine={{ stroke: 'hsl(var(--border))' }}
             tickLine={{ stroke: 'hsl(var(--border))' }}
             tickFormatter={(value) => `${value}"`}
+            width={35}
           />
           <Tooltip
             contentStyle={{
               backgroundColor: 'hsl(var(--card))',
               border: '1px solid hsl(var(--border))',
               borderRadius: '8px',
+              fontSize: '12px',
             }}
             labelStyle={{ color: 'hsl(var(--foreground))' }}
             formatter={(value, name) => {
@@ -94,7 +97,7 @@ export default function DailyComparisonChart({ models, metric }: DailyComparison
             }}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11 }}
+            wrapperStyle={{ fontSize: 10, paddingTop: '8px' }}
             formatter={(value: string) => MODEL_INFO[value as ModelName]?.name || value}
           />
 
@@ -104,7 +107,7 @@ export default function DailyComparisonChart({ models, metric }: DailyComparison
               dataKey={modelKey}
               fill={MODEL_COLORS[modelKey]}
               radius={[2, 2, 0, 0]}
-              maxBarSize={20}
+              maxBarSize={18}
             />
           ))}
         </BarChart>

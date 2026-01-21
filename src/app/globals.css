@@ -6,6 +6,22 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Mobile touch target minimum (44px) */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Safe area padding for mobile bottom nav */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Prevent text selection on touch interactions */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 

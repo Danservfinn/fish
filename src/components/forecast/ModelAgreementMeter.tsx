@@ -18,18 +18,27 @@ export default function ModelAgreementMeter({ agreement }: ModelAgreementMeterPr
 
   return (
     <Card>
-      <CardContent className="pt-4">
+      <CardContent className="pt-4 px-3 md:px-6">
         <div className="space-y-3">
-          {/* Agreement bar */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground w-28">Model Agreement</span>
+          {/* Agreement bar - stacked on mobile */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <span className="text-sm text-muted-foreground">Model Agreement</span>
+              <span className={`text-xs font-bold px-2 py-1 rounded sm:hidden ${
+                agreement.level === 'high' ? 'bg-green-500/20 text-green-400' :
+                agreement.level === 'moderate' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-red-500/20 text-red-400'
+              }`}>
+                {levelLabels[agreement.level]}
+              </span>
+            </div>
             <div className="flex-1 relative">
               <Progress
                 value={agreement.percentage}
                 className="h-3"
               />
             </div>
-            <span className={`text-xs font-bold px-2 py-1 rounded ${
+            <span className={`hidden sm:inline-block text-xs font-bold px-2 py-1 rounded ${
               agreement.level === 'high' ? 'bg-green-500/20 text-green-400' :
               agreement.level === 'moderate' ? 'bg-yellow-500/20 text-yellow-400' :
               'bg-red-500/20 text-red-400'

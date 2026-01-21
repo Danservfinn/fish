@@ -95,14 +95,14 @@ export default function LocationSearch({ onLocationSelect }: LocationSearchProps
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-4 md:h-4 text-muted-foreground" />
         <Input
           type="text"
           placeholder="Search location..."
           value={query}
           onChange={handleInputChange}
           onFocus={() => results.length > 0 && setIsOpen(true)}
-          className="pl-10 pr-10 bg-background/95 backdrop-blur-sm border-border/50"
+          className="pl-10 pr-10 h-11 md:h-10 text-base md:text-sm bg-background/95 backdrop-blur-sm border-border/50"
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
@@ -111,17 +111,17 @@ export default function LocationSearch({ onLocationSelect }: LocationSearchProps
 
       {/* Results dropdown */}
       {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg overflow-hidden z-50">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
           {results.map((result) => (
             <button
               key={result.id}
               onClick={() => handleSelect(result)}
-              className="w-full px-4 py-3 text-left hover:bg-accent transition-colors flex items-start gap-3"
+              className="w-full px-4 py-4 md:py-3 text-left hover:bg-accent active:bg-accent transition-colors flex items-start gap-3 min-h-[56px] md:min-h-0 touch-manipulation"
             >
-              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div>
-                <div className="font-medium">{result.name}</div>
-                <div className="text-sm text-muted-foreground">
+              <MapPin className="w-5 h-5 md:w-4 md:h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="font-medium text-base md:text-sm truncate">{result.name}</div>
+                <div className="text-sm md:text-xs text-muted-foreground truncate">
                   {[result.admin1, result.country].filter(Boolean).join(', ')}
                 </div>
               </div>

@@ -1,4 +1,4 @@
-export type ModelName = 'ecmwf' | 'gfs' | 'hrrr' | 'icon';
+export type ModelName = 'ecmwf' | 'ecmwf_aifs' | 'gfs' | 'graphcast' | 'nbm' | 'hrrr' | 'icon';
 
 export interface HourlyData {
   time: string;
@@ -54,12 +54,40 @@ export interface ForecastResponse {
   generated: string;
   models: {
     ecmwf: ModelForecast | null;
+    ecmwf_aifs: ModelForecast | null;
     gfs: ModelForecast | null;
+    graphcast: ModelForecast | null;
+    nbm: ModelForecast | null;
     hrrr: ModelForecast | null;
     icon: ModelForecast | null;
   };
   summary: ForecastSummary;
 }
+
+// Precipitation color scales
+export const RAIN_COLORS = [
+  { min: 0, max: 0.01, color: 'transparent', label: 'None' },
+  { min: 0.01, max: 0.25, color: '#E0FFE0', label: 'Trace' },
+  { min: 0.25, max: 0.5, color: '#98FB98', label: 'Light' },
+  { min: 0.5, max: 1, color: '#32CD32', label: 'Moderate' },
+  { min: 1, max: 2, color: '#228B22', label: 'Heavy' },
+  { min: 2, max: 4, color: '#006400', label: 'Very Heavy' },
+  { min: 4, max: Infinity, color: '#004D00', label: 'Extreme' },
+] as const;
+
+export const SNOW_COLORS = [
+  { min: 0, max: 0.1, color: 'transparent', label: 'None' },
+  { min: 0.1, max: 1, color: '#F0F8FF', label: 'Dusting' },
+  { min: 1, max: 3, color: '#ADD8E6', label: 'Light' },
+  { min: 3, max: 6, color: '#87CEEB', label: 'Moderate' },
+  { min: 6, max: 12, color: '#4169E1', label: 'Heavy' },
+  { min: 12, max: 18, color: '#0000CD', label: 'Very Heavy' },
+  { min: 18, max: Infinity, color: '#00008B', label: 'Extreme' },
+] as const;
+
+export type TimePeriod = '24h' | '48h' | '7d' | 'custom';
+export type PrecipMode = 'rain' | 'snow' | 'total';
+export type ViewMode = 'single' | 'comparison' | 'spread';
 
 export interface GeocodingResult {
   id: number;
@@ -74,14 +102,86 @@ export interface GeocodingResult {
 
 export const MODEL_COLORS: Record<ModelName, string> = {
   ecmwf: 'hsl(210 100% 52%)',
+  ecmwf_aifs: 'hsl(260 100% 60%)',
   gfs: 'hsl(142 71% 45%)',
+  graphcast: 'hsl(330 85% 55%)',
+  nbm: 'hsl(45 100% 50%)',
   hrrr: 'hsl(38 92% 50%)',
   icon: 'hsl(280 65% 60%)',
 };
 
-export const MODEL_INFO: Record<ModelName, { name: string; fullName: string; resolution: string; range: string }> = {
-  ecmwf: { name: 'ECMWF', fullName: 'European Centre', resolution: '9km', range: '15 days' },
-  gfs: { name: 'GFS', fullName: 'Global Forecast System', resolution: '25km', range: '16 days' },
-  hrrr: { name: 'HRRR', fullName: 'High-Resolution Rapid Refresh', resolution: '3km', range: '48 hours' },
-  icon: { name: 'ICON', fullName: 'Icosahedral Model', resolution: '13km', range: '7 days' },
+export interface ModelInfoType {
+  name: string;
+  fullName: string;
+  resolution: string;
+  range: string;
+  description: string;
+  sourceUrl: string;
+  organization: string;
+}
+
+export const MODEL_INFO: Record<ModelName, ModelInfoType> = {
+  ecmwf: {
+    name: 'ECMWF',
+    fullName: 'European Centre for Medium-Range Weather Forecasts',
+    resolution: '9km',
+    range: '15 days',
+    description: 'The gold standard in weather prediction. Consistently ranked #1 for accuracy worldwide.',
+    sourceUrl: 'https://www.ecmwf.int/',
+    organization: 'European Union',
+  },
+  ecmwf_aifs: {
+    name: 'ECMWF AIFS',
+    fullName: 'ECMWF Artificial Intelligence Forecast System',
+    resolution: '25km',
+    range: '10 days',
+    description: 'ECMWF\'s AI weather model. Outperforms GraphCast and other AI models in accuracy benchmarks.',
+    sourceUrl: 'https://www.ecmwf.int/en/forecasts/documentation-and-support/machine-learning',
+    organization: 'European Union (AI)',
+  },
+  gfs: {
+    name: 'GFS',
+    fullName: 'Global Forecast System',
+    resolution: '25km',
+    range: '16 days',
+    description: 'The primary American weather model run by NOAA. Good for broad trends and long-range forecasts.',
+    sourceUrl: 'https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast',
+    organization: 'NOAA (USA)',
+  },
+  graphcast: {
+    name: 'GraphCast',
+    fullName: 'Google DeepMind GraphCast',
+    resolution: '25km',
+    range: '10 days',
+    description: 'Google DeepMind\'s AI weather model using graph neural networks. Made headlines for outperforming traditional models.',
+    sourceUrl: 'https://deepmind.google/discover/blog/graphcast-ai-model-for-faster-and-more-accurate-global-weather-forecasting/',
+    organization: 'Google DeepMind (AI)',
+  },
+  nbm: {
+    name: 'NBM',
+    fullName: 'National Blend of Models',
+    resolution: '~3km',
+    range: '10 days',
+    description: 'NOAA\'s statistical blend of multiple US models. Best consensus forecast for US locations.',
+    sourceUrl: 'https://vlab.noaa.gov/web/mdl/nbm',
+    organization: 'NOAA (USA)',
+  },
+  hrrr: {
+    name: 'HRRR',
+    fullName: 'High-Resolution Rapid Refresh',
+    resolution: '3km',
+    range: '48 hours',
+    description: 'Ultra-high resolution US model updated hourly. Best for precise timing and local storm details.',
+    sourceUrl: 'https://rapidrefresh.noaa.gov/hrrr/',
+    organization: 'NOAA (USA)',
+  },
+  icon: {
+    name: 'ICON',
+    fullName: 'Icosahedral Nonhydrostatic Model',
+    resolution: '13km',
+    range: '7 days',
+    description: 'German weather model known for rapid updates and strong European accuracy.',
+    sourceUrl: 'https://www.dwd.de/EN/research/weatherforecasting/num_modelling/01_num_weather_prediction_modells/icon_description.html',
+    organization: 'DWD (Germany)',
+  },
 };

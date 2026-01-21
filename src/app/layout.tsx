@@ -14,11 +14,11 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Weather Model Comparison",
-  description: "Compare weather forecasts from ECMWF, GFS, HRRR, and ICON models",
+  title: "Fish - Multi-Model Snow Forecasts",
+  description: "Compare snow forecasts from ECMWF, GFS, HRRR, and ICON weather models",
   openGraph: {
-    title: "Weather Model Comparison",
-    description: "Multi-model weather forecast comparison app",
+    title: "Fish - Multi-Model Snow Forecasts",
+    description: "Compare snow forecasts from multiple weather models to plan your powder days",
     type: "website",
   },
 };
