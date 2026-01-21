@@ -2,99 +2,168 @@
 ECMWF AIFS Microservice
 
 FastAPI application serving AIFS forecast data for the Fish weather app.
-Downloads GRIB2 data from ECMWF Open Data portal and converts to JSON.
+Currently proxies to Open-Meteo with fallback to mock data.
+Full ECMWF GRIB2 integration planned for future.
 """
 
-import asyncio
 import logging
-from contextlib import asynccontextmanager
-from dataclasses import asdict
+import os
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
-import config
-from cache import forecast_cache, make_cache_key
-from ecmwf_client import get_client, fetch_latest_aifs
-from grib_processor import extract_forecast, get_processor
+import httpx
 
 # Configure logging
 logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL),
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-# Background task for data refresh
-async def refresh_data_periodically():
-    """Background task to refresh AIFS data every 6 hours."""
-    while True:
-        try:
-            logger.info("Starting periodic AIFS data refresh...")
-            await fetch_latest_aifs(force=True)
-            logger.info("Periodic data refresh complete")
-
-            # Clean up old files
-            get_client().cleanup_old_files(keep_hours=24)
-        except Exception as e:
-            logger.error(f"Error in periodic refresh: {e}")
-
-        # Wait for next refresh
-        await asyncio.sleep(config.REFRESH_INTERVAL_HOURS * 3600)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
-    # Startup: fetch initial data and start background refresh
-    logger.info("Starting AIFS service...")
-
-    try:
-        # Initial data fetch
-        logger.info("Fetching initial AIFS data...")
-        files = await fetch_latest_aifs()
-        logger.info(f"Initial data loaded: {list(files.keys())}")
-
-        # Pre-load GRIB files
-        processor = get_processor()
-        processor.load_files(files)
-        logger.info("GRIB data loaded into memory")
-    except Exception as e:
-        logger.warning(f"Could not load initial data (will retry on first request): {e}")
-
-    # Start background refresh task
-    refresh_task = asyncio.create_task(refresh_data_periodically())
-
-    yield
-
-    # Shutdown: cancel background task
-    refresh_task.cancel()
-    try:
-        await refresh_task
-    except asyncio.CancelledError:
-        pass
-    logger.info("AIFS service stopped")
-
 
 # Create FastAPI app
 app = FastAPI(
     title="ECMWF AIFS Service",
     description="Serves ECMWF AIFS AI weather model forecasts for the Fish weather app",
     version="1.0.0",
-    lifespan=lifespan,
 )
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+# Simple in-memory cache
+_cache: dict = {}
+CACHE_TTL = 3600  # 1 hour
+
+
+def get_cache_key(lat: float, lon: float, days: int) -> str:
+    return f"{lat:.2f},{lon:.2f},{days}"
+
+
+async def fetch_aifs_from_openmeteo(lat: float, lon: float, days: int) -> dict:
+    """
+    Try to fetch AIFS data from Open-Meteo.
+    Falls back to mock data if AIFS returns nulls.
+    """
+    try:
+        # Try Open-Meteo's AIFS endpoint
+        url = (
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={lat}&longitude={lon}"
+            f"&models=ecmwf_aifs025"
+            f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum"
+            f"&timezone=auto"
+            f"&forecast_days={min(days, 10)}"
+        )
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=10.0)
+
+            if response.status_code == 200:
+                data = response.json()
+                daily = data.get("daily", {})
+
+                # Check if we got real data (not all nulls)
+                temps = daily.get("temperature_2m_max", [])
+                if temps and any(t is not None for t in temps):
+                    # We have temperature data, use it
+                    return format_openmeteo_response(data, lat, lon)
+
+        logger.info(f"Open-Meteo AIFS returned no data for ({lat}, {lon}), using mock data")
+    except Exception as e:
+        logger.warning(f"Open-Meteo AIFS fetch failed: {e}, using mock data")
+
+    # Return mock data
+    return generate_mock_forecast(lat, lon, days)
+
+
+def format_openmeteo_response(data: dict, lat: float, lon: float) -> dict:
+    """Format Open-Meteo response to our API format."""
+    daily = data.get("daily", {})
+    times = daily.get("time", [])
+
+    daily_forecasts = []
+    for i, date in enumerate(times):
+        daily_forecasts.append({
+            "date": date,
+            "snowfall_sum": daily.get("snowfall_sum", [None])[i] if i < len(daily.get("snowfall_sum", [])) else None,
+            "precipitation_sum": daily.get("precipitation_sum", [None])[i] if i < len(daily.get("precipitation_sum", [])) else None,
+            "temp_max": daily.get("temperature_2m_max", [None])[i] if i < len(daily.get("temperature_2m_max", [])) else None,
+            "temp_min": daily.get("temperature_2m_min", [None])[i] if i < len(daily.get("temperature_2m_min", [])) else None,
+        })
+
+    return {
+        "lat": lat,
+        "lon": lon,
+        "model": "ecmwf_aifs",
+        "daily": daily_forecasts,
+        "last_updated": datetime.utcnow().isoformat() + "Z",
+        "forecast_horizon": len(daily_forecasts),
+        "source": "open-meteo",
+    }
+
+
+def generate_mock_forecast(lat: float, lon: float, days: int) -> dict:
+    """
+    Generate mock AIFS forecast data.
+    Uses realistic patterns based on location and season.
+    """
+    today = datetime.utcnow().date()
+    daily_forecasts = []
+
+    # Simple seasonal adjustment based on latitude and month
+    month = today.month
+    is_winter = month in [12, 1, 2] if lat > 0 else month in [6, 7, 8]
+    base_temp = 5 if is_winter else 20
+
+    # Latitude adjustment (colder at higher latitudes)
+    lat_adjustment = (abs(lat) - 45) * 0.3
+    base_temp -= lat_adjustment
+
+    for i in range(min(days, 10)):
+        date = today + timedelta(days=i)
+
+        # Add some variation
+        temp_variation = (i % 3 - 1) * 2  # -2, 0, 2 pattern
+
+        temp_max = base_temp + 5 + temp_variation
+        temp_min = base_temp - 3 + temp_variation
+
+        # Precipitation chance varies
+        precip = 0.0
+        snow = 0.0
+        if (i + int(lat * 10)) % 4 == 0:  # Some days have precip
+            precip = 2.5 + (i % 5)
+            if temp_max < 2:  # Cold enough for snow
+                snow = precip * 0.8
+                precip = precip * 0.2
+
+        daily_forecasts.append({
+            "date": date.isoformat(),
+            "snowfall_sum": round(snow, 1) if snow > 0 else None,
+            "precipitation_sum": round(precip, 1) if precip > 0 else None,
+            "temp_max": round(temp_max, 1),
+            "temp_min": round(temp_min, 1),
+        })
+
+    return {
+        "lat": lat,
+        "lon": lon,
+        "model": "ecmwf_aifs",
+        "daily": daily_forecasts,
+        "last_updated": datetime.utcnow().isoformat() + "Z",
+        "forecast_horizon": len(daily_forecasts),
+        "source": "mock",
+        "note": "Mock data - full ECMWF GRIB2 integration in progress",
+    }
 
 
 @app.get("/")
@@ -107,7 +176,6 @@ async def root():
         "endpoints": {
             "health": "/health",
             "forecast": "/forecast/{lat}/{lon}",
-            "cache_stats": "/cache/stats",
         },
     }
 
@@ -142,22 +210,19 @@ async def get_forecast(
         raise HTTPException(400, "Longitude must be between -180 and 180")
 
     # Check cache
-    cache_key = make_cache_key(lat, lon, days)
-    cached = forecast_cache.get(cache_key)
-    if cached is not None:
-        logger.debug(f"Cache hit for {cache_key}")
-        return JSONResponse(content=cached)
+    cache_key = get_cache_key(lat, lon, days)
+    if cache_key in _cache:
+        cached_time, cached_data = _cache[cache_key]
+        if (datetime.utcnow() - cached_time).seconds < CACHE_TTL:
+            logger.debug(f"Cache hit for {cache_key}")
+            return JSONResponse(content=cached_data)
 
-    # Get or fetch data
+    # Fetch data
     try:
-        files = await fetch_latest_aifs()
-        forecast = extract_forecast(files, lat, lon, days)
-
-        # Convert to dict for JSON response
-        result = asdict(forecast)
+        result = await fetch_aifs_from_openmeteo(lat, lon, days)
 
         # Cache the result
-        forecast_cache.set(cache_key, result)
+        _cache[cache_key] = (datetime.utcnow(), result)
 
         return JSONResponse(content=result)
 
@@ -166,38 +231,8 @@ async def get_forecast(
         raise HTTPException(500, f"Failed to get AIFS forecast: {str(e)}")
 
 
-@app.get("/cache/stats")
-async def cache_stats():
-    """Get cache statistics."""
-    return forecast_cache.stats
-
-
-@app.post("/cache/clear")
-async def clear_cache():
-    """Clear the forecast cache."""
-    forecast_cache.clear()
-    return {"status": "cleared"}
-
-
-@app.post("/refresh")
-async def refresh_data():
-    """Manually trigger data refresh."""
-    try:
-        files = await fetch_latest_aifs(force=True)
-        return {
-            "status": "refreshed",
-            "files": {k: str(v) for k, v in files.items()},
-        }
-    except Exception as e:
-        raise HTTPException(500, f"Refresh failed: {str(e)}")
-
-
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(
-        "main:app",
-        host=config.HOST,
-        port=config.PORT,
-        reload=config.DEBUG,
-    )
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
