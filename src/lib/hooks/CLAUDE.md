@@ -7,5 +7,12 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #23999 | 12:29 AM | ✅ | Removed Unused Import from useRadarAnimation Hook | ~225 |
+| #23996 | " | 🔵 | Radar Animation Hook for Precipitation Visualization | ~432 |
+| #23993 | 12:28 AM | 🔴 | Build Errors in Map Precipitation Visualization Components | ~383 |
+| #23994 | " | 🟣 | Radar Animation Hook with Frame Sequencing and Play Controls | ~606 |
+| #23991 | " | 🟣 | Precipitation Data Fetching Hook with Auto-Refresh | ~541 |
+| #23990 | " | 🟣 | Viewport Grid Hook with Debounced Calculation | ~491 |
+| #23964 | 12:20 AM | ⚖️ | Live Precipitation Radar Map - Implementation Plan Designed | ~749 |
 | #23950 | 12:17 AM | 🔵 | Existing Weather Visualization Infrastructure Assessment | ~595 |
 </claude-mem-context>

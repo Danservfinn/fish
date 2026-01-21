@@ -7,5 +7,12 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #23966 | 12:20 AM | ✅ | ForecastPanel Component Enhanced with Model Selection and Breakdown Features | ~472 |
+| #23965 | " | 🟣 | Created ModelBreakdownCard Component for Weather Forecast Comparison | ~227 |
+| #23964 | " | ⚖️ | Live Precipitation Radar Map - Implementation Plan Designed | ~749 |
+| #23963 | " | 🟣 | Create Precipitation Mode Selector Component | ~319 |
+| #23962 | " | 🟣 | Time Period Selector Component for Precipitation Accumulation | ~347 |
+| #23959 | 12:19 AM | ✅ | Daily Comparison Chart Component Updated for Three New Weather Models | ~299 |
+| #23958 | " | 🔵 | Existing Forecast Panel UI Component Architecture | ~455 |
 | #23950 | 12:17 AM | 🔵 | Existing Weather Visualization Infrastructure Assessment | ~595 |
 </claude-mem-context>

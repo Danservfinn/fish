@@ -3,9 +3,23 @@
 import { useCallback, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Map, { Marker, NavigationControl, GeolocateControl } from 'react-map-gl/maplibre';
+import type { MapLayerMouseEvent, ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapPin } from 'lucide-react';
 import LocationSearch from './LocationSearch';
+import PrecipitationLayer from './PrecipitationLayer';
+import MapLegend from './MapLegend';
+import MapControls, { type MapMode } from './MapControls';
+import RadarOverlay from './RadarOverlay';
+import RadarControls from './RadarControls';
+import RadarLegend from './RadarLegend';
+import RadarPopup from './RadarPopup';
+import { useViewportGrid } from '@/lib/hooks/useViewportGrid';
+import { usePrecipitationData } from '@/lib/hooks/usePrecipitationData';
+import { useRadarAnimation } from '@/lib/hooks/useRadarAnimation';
+import type { PrecipMode } from '@/types/forecast';
+import type { RadarLayerState, PrecipitationProperties } from '@/types/precipitation';
+import { DEFAULT_RADAR_STATE } from '@/constants/precipitation';
 
 // CartoDB Dark Matter - free, no API key needed
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -18,12 +32,39 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Initial view - center of US or selected location
+  // Map state
   const [viewState, setViewState] = useState({
     longitude: selectedLocation?.lon ?? -98.5795,
     latitude: selectedLocation?.lat ?? 39.8283,
     zoom: selectedLocation ? 8 : 4,
   });
+
+  // Layer state
+  const [mapMode, setMapMode] = useState<MapMode>('accumulation');
+  const [precipMode, setPrecipMode] = useState<PrecipMode>('snow');
+  const [layerVisible, setLayerVisible] = useState(true);
+
+  // Radar state
+  const [radarVisible, setRadarVisible] = useState<boolean>(DEFAULT_RADAR_STATE.isVisible);
+  const [radarOpacity, setRadarOpacity] = useState<number>(DEFAULT_RADAR_STATE.opacity);
+  const [radarLayers, setRadarLayers] = useState<RadarLayerState>(DEFAULT_RADAR_STATE.layers);
+  const [radarPopup, setRadarPopup] = useState<{
+    longitude: number;
+    latitude: number;
+    properties: PrecipitationProperties;
+  } | null>(null);
+
+  // Radar data hooks
+  const { grid, updateGrid } = useViewportGrid();
+  const { data: precipitationData, geoJSON, isLoading, lastUpdated, refresh } = usePrecipitationData(grid);
+  const {
+    currentFrame,
+    currentFrameIndex,
+    frameCount,
+    isPlaying,
+    toggle: togglePlay,
+    setFrame,
+  } = useRadarAnimation(precipitationData, grid?.resolution ?? 1);
 
   const handleMapClick = useCallback((event: { lngLat: { lng: number; lat: number } }) => {
     const { lng, lat } = event.lngLat;
@@ -53,6 +94,47 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
     router.push(`?${params.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
+  // Handle map move end for radar grid update
+  const handleMoveEnd = useCallback((evt: ViewStateChangeEvent) => {
+    if (mapMode !== 'live') return;
+
+    const bounds = evt.target.getBounds();
+    if (bounds) {
+      updateGrid(
+        {
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        },
+        evt.viewState.zoom
+      );
+    }
+  }, [mapMode, updateGrid]);
+
+  // Handle radar layer click
+  const handleRadarClick = useCallback((event: MapLayerMouseEvent) => {
+    if (mapMode !== 'live' || !event.features?.length) return;
+
+    const feature = event.features[0];
+    if (feature.layer?.id === 'precipitation-fill' && feature.geometry.type === 'Point') {
+      const [lon, lat] = feature.geometry.coordinates;
+      setRadarPopup({
+        longitude: lon,
+        latitude: lat,
+        properties: feature.properties as PrecipitationProperties,
+      });
+    }
+  }, [mapMode]);
+
+  // Toggle radar layer
+  const handleToggleRadarLayer = useCallback((layer: keyof RadarLayerState) => {
+    setRadarLayers(prev => ({
+      ...prev,
+      [layer]: !prev[layer],
+    }));
+  }, []);
+
   return (
     <div className="absolute inset-0">
       {/* Search bar */}
@@ -60,15 +142,49 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
         <LocationSearch onLocationSelect={handleLocationSelect} />
       </div>
 
+      {/* Map Controls */}
+      <MapControls
+        mapMode={mapMode}
+        onMapModeChange={setMapMode}
+        precipMode={precipMode}
+        onPrecipModeChange={setPrecipMode}
+        layerVisible={layerVisible}
+        onLayerVisibleChange={setLayerVisible}
+      />
+
+      {/* Radar Controls (for live mode) */}
+      {mapMode === 'live' && (
+        <div className="absolute top-20 left-4 z-10">
+          <RadarControls
+            isVisible={radarVisible}
+            opacity={radarOpacity}
+            layers={radarLayers}
+            isPlaying={isPlaying}
+            isLoading={isLoading}
+            lastUpdated={lastUpdated}
+            frameCount={frameCount}
+            currentFrameIndex={currentFrameIndex}
+            onToggleVisibility={() => setRadarVisible(!radarVisible)}
+            onOpacityChange={setRadarOpacity}
+            onToggleLayer={handleToggleRadarLayer}
+            onTogglePlay={togglePlay}
+            onRefresh={refresh}
+            onFrameChange={setFrame}
+          />
+        </div>
+      )}
+
       {/* Map */}
       <Map
         {...viewState}
         onMove={evt => setViewState(evt.viewState)}
-        onClick={handleMapClick}
+        onMoveEnd={handleMoveEnd}
+        onClick={mapMode === 'live' ? handleRadarClick : handleMapClick}
         mapStyle={MAP_STYLE}
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
         cursor="crosshair"
+        interactiveLayerIds={mapMode === 'live' ? ['precipitation-fill'] : undefined}
       >
         <NavigationControl position="bottom-right" />
         <GeolocateControl
@@ -79,6 +195,35 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
           }}
         />
 
+        {/* Precipitation Layer (Accumulation Mode) */}
+        {mapMode === 'accumulation' && (
+          <PrecipitationLayer
+            mode={precipMode}
+            days={7}
+            visible={layerVisible}
+          />
+        )}
+
+        {/* Radar Overlay (Live Mode) */}
+        {mapMode === 'live' && (
+          <RadarOverlay
+            data={currentFrame ?? geoJSON}
+            opacity={radarOpacity}
+            layers={radarLayers}
+            isVisible={radarVisible}
+          />
+        )}
+
+        {/* Radar Popup */}
+        {radarPopup && (
+          <RadarPopup
+            longitude={radarPopup.longitude}
+            latitude={radarPopup.latitude}
+            properties={radarPopup.properties}
+            onClose={() => setRadarPopup(null)}
+          />
+        )}
+
         {/* Selected location marker */}
         {selectedLocation && (
           <Marker
@@ -86,17 +231,65 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
             latitude={selectedLocation.lat}
             anchor="bottom"
           >
-            <div className="animate-bounce">
-              <MapPin className="w-8 h-8 text-primary fill-primary/20" />
+            <div className="relative">
+              {/* Glow effect */}
+              <div
+                className="absolute inset-0 -m-2 rounded-full animate-ping"
+                style={{
+                  background: 'radial-gradient(circle, rgba(6,182,212,0.4) 0%, transparent 70%)',
+                  animationDuration: '2s',
+                }}
+              />
+              {/* Pin */}
+              <MapPin
+                className="w-8 h-8 drop-shadow-lg"
+                style={{
+                  color: '#06b6d4',
+                  filter: 'drop-shadow(0 0 8px rgba(6,182,212,0.5))',
+                }}
+                fill="rgba(6,182,212,0.2)"
+              />
             </div>
           </Marker>
         )}
       </Map>
 
+      {/* Legend */}
+      {mapMode === 'accumulation' && (
+        <MapLegend mode={precipMode} visible={layerVisible} />
+      )}
+
+      {/* Radar Legend (Live Mode) */}
+      {mapMode === 'live' && (
+        <div className="absolute bottom-20 left-4 z-10">
+          <RadarLegend isVisible={radarVisible} />
+        </div>
+      )}
+
       {/* Attribution */}
-      <div className="absolute bottom-2 left-2 text-xs text-muted-foreground/60">
-        © CartoDB © OpenStreetMap
+      <div className="absolute bottom-2 left-2 text-xs text-white/30">
+        © CartoDB © OpenStreetMap • Weather data: Open-Meteo
       </div>
+
+      {/* Clear conditions indicator (Live Mode) */}
+      {mapMode === 'live' && radarVisible && !isLoading && precipitationData.length > 0 &&
+        precipitationData.every(cell => cell.rate < 0.1) && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div
+            className="px-6 py-4 rounded-2xl text-center"
+            style={{
+              background: 'linear-gradient(135deg, rgba(15,15,20,0.9) 0%, rgba(25,25,35,0.85) 100%)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            }}
+          >
+            <div className="text-2xl mb-2">☀️</div>
+            <div className="text-sm font-semibold text-white/80">Clear Conditions</div>
+            <div className="text-xs text-white/40 mt-1">No precipitation detected</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

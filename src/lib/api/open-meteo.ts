@@ -71,28 +71,6 @@ async function fetchModel(
   }
 }
 
-// ECMWF AIFS (AI model)
-async function fetchAIFS(lat: number, lon: number, days: number = 7): Promise<ModelForecast | null> {
-  try {
-    const url = `${API_BASE}/forecast?latitude=${lat}&longitude=${lon}&models=ecmwf_aifs025&daily=snowfall_sum,precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=${Math.min(days, 10)}`;
-
-    const response = await fetch(url);
-    if (!response.ok) return null;
-
-    const data: OpenMeteoResponse = await response.json();
-
-    return {
-      model: 'ecmwf_aifs' as ModelName,
-      daily: parseDailyData(data),
-      lastUpdated: new Date().toISOString(),
-      forecastHorizon: 10,
-    };
-  } catch (error) {
-    console.error('Error fetching ECMWF AIFS:', error);
-    return null;
-  }
-}
-
 // GraphCast (Google DeepMind AI model)
 async function fetchGraphCast(lat: number, lon: number, days: number = 7): Promise<ModelForecast | null> {
   try {
@@ -123,7 +101,7 @@ async function fetchNBM(lat: number, lon: number, days: number = 7): Promise<Mod
   }
 
   try {
-    const url = `${API_BASE}/forecast?latitude=${lat}&longitude=${lon}&models=nbm_conus&daily=snowfall_sum,precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=${Math.min(days, 10)}`;
+    const url = `${API_BASE}/forecast?latitude=${lat}&longitude=${lon}&models=ncep_nbm_conus&daily=snowfall_sum,precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=${Math.min(days, 10)}`;
 
     const response = await fetch(url);
     if (!response.ok) return null;
@@ -180,9 +158,8 @@ async function reverseGeocode(lat: number, lon: number): Promise<Location> {
 
 export async function fetchAllModels(lat: number, lon: number, days: number = 7): Promise<ForecastResponse> {
   // Fetch all models in parallel
-  const [ecmwf, ecmwf_aifs, gfs, graphcast, nbm, hrrr, icon] = await Promise.all([
+  const [ecmwf, gfs, graphcast, nbm, hrrr, icon] = await Promise.all([
     fetchModel('ecmwf', lat, lon, days),
-    fetchAIFS(lat, lon, days),
     fetchModel('gfs', lat, lon, days),
     fetchGraphCast(lat, lon, days),
     fetchNBM(lat, lon, days),
@@ -194,7 +171,7 @@ export async function fetchAllModels(lat: number, lon: number, days: number = 7)
   const location = await reverseGeocode(lat, lon);
 
   // Calculate agreement
-  const validModels = [ecmwf, ecmwf_aifs, gfs, graphcast, nbm, hrrr, icon].filter((m): m is ModelForecast => m !== null);
+  const validModels = [ecmwf, gfs, graphcast, nbm, hrrr, icon].filter((m): m is ModelForecast => m !== null);
   const agreement = calculateAgreement(validModels);
 
   // Calculate snow timing (simplified)
@@ -228,7 +205,7 @@ export async function fetchAllModels(lat: number, lon: number, days: number = 7)
   return {
     location,
     generated: new Date().toISOString(),
-    models: { ecmwf, ecmwf_aifs, gfs, graphcast, nbm, hrrr, icon },
+    models: { ecmwf, gfs, graphcast, nbm, hrrr, icon },
     summary: {
       agreement,
       snowStart,

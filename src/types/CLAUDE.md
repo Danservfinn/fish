@@ -7,6 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #23982 | 12:26 AM | 🟣 | Precipitation Types and Interfaces Defined | ~477 |
+| #23964 | 12:20 AM | ⚖️ | Live Precipitation Radar Map - Implementation Plan Designed | ~749 |
 | #23956 | 12:18 AM | 🟣 | Precipitation Visualization Type System and Color Scales | ~516 |
 | #23955 | " | ✅ | Extended ModelName Type Union and Added MODEL_INFO/COLORS for 7 Models | ~387 |
 | #23954 | " | ✅ | Weather Compare App Model Metadata and UI Display Updates | ~403 |

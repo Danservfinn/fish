@@ -1,4 +1,4 @@
-export type ModelName = 'ecmwf' | 'ecmwf_aifs' | 'gfs' | 'graphcast' | 'nbm' | 'hrrr' | 'icon';
+export type ModelName = 'ecmwf' | 'gfs' | 'graphcast' | 'nbm' | 'hrrr' | 'icon';
 
 export interface HourlyData {
   time: string;
@@ -54,7 +54,6 @@ export interface ForecastResponse {
   generated: string;
   models: {
     ecmwf: ModelForecast | null;
-    ecmwf_aifs: ModelForecast | null;
     gfs: ModelForecast | null;
     graphcast: ModelForecast | null;
     nbm: ModelForecast | null;
@@ -102,7 +101,6 @@ export interface GeocodingResult {
 
 export const MODEL_COLORS: Record<ModelName, string> = {
   ecmwf: 'hsl(210 100% 52%)',
-  ecmwf_aifs: 'hsl(260 100% 60%)',
   gfs: 'hsl(142 71% 45%)',
   graphcast: 'hsl(330 85% 55%)',
   nbm: 'hsl(45 100% 50%)',
@@ -129,15 +127,6 @@ export const MODEL_INFO: Record<ModelName, ModelInfoType> = {
     description: 'The gold standard in weather prediction. Consistently ranked #1 for accuracy worldwide.',
     sourceUrl: 'https://www.ecmwf.int/',
     organization: 'European Union',
-  },
-  ecmwf_aifs: {
-    name: 'ECMWF AIFS',
-    fullName: 'ECMWF Artificial Intelligence Forecast System',
-    resolution: '25km',
-    range: '10 days',
-    description: 'ECMWF\'s AI weather model. Outperforms GraphCast and other AI models in accuracy benchmarks.',
-    sourceUrl: 'https://www.ecmwf.int/en/forecasts/documentation-and-support/machine-learning',
-    organization: 'European Union (AI)',
   },
   gfs: {
     name: 'GFS',
