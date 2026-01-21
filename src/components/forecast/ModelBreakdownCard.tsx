@@ -30,9 +30,9 @@ export default function ModelBreakdownCard({ data, timePeriod }: ModelBreakdownC
     .sort((a, b) => b.snowTotal - a.snowTotal);
 
   const snowValues = modelTotals.map(m => m.snowTotal);
-  const minSnow = Math.min(...snowValues);
-  const maxSnow = Math.max(...snowValues);
-  const avgSnow = snowValues.reduce((a, b) => a + b, 0) / snowValues.length;
+  const minSnow = snowValues.length > 0 ? Math.min(...snowValues) : 0;
+  const maxSnow = snowValues.length > 0 ? Math.max(...snowValues) : 0;
+  const avgSnow = snowValues.length > 0 ? snowValues.reduce((a, b) => a + b, 0) / snowValues.length : 0;
   const spread = maxSnow - minSnow;
 
   // Determine confidence based on spread

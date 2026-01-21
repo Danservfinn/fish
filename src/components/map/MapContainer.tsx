@@ -66,7 +66,8 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
   // Layer state
   const [mapMode, setMapMode] = useState<MapMode>('accumulation');
   const [precipMode, setPrecipMode] = useState<PrecipMode>('snow');
-  const [layerVisible, setLayerVisible] = useState(true);
+  // Default layer OFF to avoid rate limiting Open-Meteo API
+  const [layerVisible, setLayerVisible] = useState(false);
 
   // Radar state
   const [radarVisible, setRadarVisible] = useState<boolean>(DEFAULT_RADAR_STATE.isVisible);

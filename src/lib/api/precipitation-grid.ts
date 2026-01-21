@@ -33,14 +33,22 @@ export async function fetchPrecipitationGrid(
   const latSpan = bounds.north - bounds.south;
   const lonSpan = bounds.east - bounds.west;
 
-  // Target ~400 points for smooth heatmap interpolation
-  // Grid is sqrt(400) = 20x20 points ideally
-  const targetPoints = 400;
+  // Target ~64 points (8x8 grid) to stay within Open-Meteo rate limits
+  // Free tier has strict rate limiting - keep requests minimal
+  const targetPoints = 64;
   const aspectRatio = lonSpan / latSpan;
 
   // Calculate grid dimensions maintaining aspect ratio
-  const latCount = Math.ceil(Math.sqrt(targetPoints / aspectRatio));
-  const lonCount = Math.ceil(Math.sqrt(targetPoints * aspectRatio));
+  let latCount = Math.ceil(Math.sqrt(targetPoints / aspectRatio));
+  let lonCount = Math.ceil(Math.sqrt(targetPoints * aspectRatio));
+
+  // Hard limit to prevent rate limiting
+  const maxPoints = 100;
+  if (latCount * lonCount > maxPoints) {
+    const factor = Math.sqrt((latCount * lonCount) / maxPoints);
+    latCount = Math.max(2, Math.floor(latCount / factor));
+    lonCount = Math.max(2, Math.floor(lonCount / factor));
+  }
 
   // Calculate resolution from counts
   const latResolution = latSpan / Math.max(latCount - 1, 1);
@@ -63,10 +71,14 @@ export async function fetchPrecipitationGrid(
 
   // Fetch data for all grid points in parallel (batched)
   const cells: GridCell[] = [];
-  const batchSize = 20; // Increased batch size for faster fetching
+  const batchSize = 10; // Smaller batches to avoid rate limiting
 
-  // Process in batches
+  // Process in batches with delay to avoid rate limiting
   for (let i = 0; i < allCoords.length; i += batchSize) {
+    // Add delay between batches (except first)
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     const batch = allCoords.slice(i, i + batchSize);
     const results = await Promise.all(
       batch.map(async ({ lat, lon }) => {
