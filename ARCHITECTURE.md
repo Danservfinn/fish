@@ -145,3 +145,25 @@ International → ECMWF model
 - No API keys required (Open-Meteo is free)
 - No user data stored
 - Client-side only (no server-side secrets)
+
+## Deployment
+
+**Platform:** Railway
+**URL:** https://fish-weather-production.up.railway.app
+
+### Build Configuration
+- Uses Next.js `output: 'standalone'` for optimized Docker image
+- Nixpacks builder (auto-detected)
+- Start command: `node .next/standalone/server.js`
+
+### Railway Configuration (`railway.json`)
+```json
+{
+  "build": { "builder": "NIXPACKS" },
+  "deploy": {
+    "startCommand": "node .next/standalone/server.js",
+    "healthcheckPath": "/",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
+```
