@@ -7,6 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { RadarLayerState } from '@/types/precipitation';
@@ -57,13 +58,14 @@ export default function RadarControls({
   };
 
   return (
-    <Card className="bg-background/90 backdrop-blur-sm border-border/50 w-56">
-      <CardContent className="p-3 space-y-3">
-        {/* Header with visibility toggle */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Radar</span>
-          <div className="flex items-center gap-1">
-            <Tooltip>
+    <TooltipProvider>
+      <Card className="bg-background/90 backdrop-blur-sm border-border/50 w-56">
+        <CardContent className="p-3 space-y-3">
+          {/* Header with visibility toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Radar</span>
+            <div className="flex items-center gap-1">
+              <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
@@ -95,10 +97,10 @@ export default function RadarControls({
               </TooltipTrigger>
               <TooltipContent>{isVisible ? 'Hide radar' : 'Show radar'}</TooltipContent>
             </Tooltip>
+            </div>
           </div>
-        </div>
 
-        {isVisible && (
+          {isVisible && (
           <>
             {/* Opacity slider */}
             <div className="space-y-1.5">
@@ -191,7 +193,8 @@ export default function RadarControls({
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }
