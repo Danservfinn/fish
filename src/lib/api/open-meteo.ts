@@ -1,5 +1,6 @@
 import type { ModelForecast, DailyData, Location, ForecastResponse, ModelName } from '@/types/forecast';
 import { calculateAgreement } from '@/lib/utils/agreement';
+import { fetchAIFS } from './aifs';
 
 const API_BASE = 'https://api.open-meteo.com/v1';
 
@@ -157,21 +158,22 @@ async function reverseGeocode(lat: number, lon: number): Promise<Location> {
 }
 
 export async function fetchAllModels(lat: number, lon: number, days: number = 7): Promise<ForecastResponse> {
-  // Fetch all models in parallel
-  const [ecmwf, gfs, graphcast, nbm, hrrr, icon] = await Promise.all([
+  // Fetch all models in parallel (including AIFS from microservice)
+  const [ecmwf, gfs, graphcast, nbm, hrrr, icon, ecmwf_aifs] = await Promise.all([
     fetchModel('ecmwf', lat, lon, days),
     fetchModel('gfs', lat, lon, days),
     fetchGraphCast(lat, lon, days),
     fetchNBM(lat, lon, days),
     fetchHRRR(lat, lon),
     fetchModel('icon', lat, lon, days),
+    fetchAIFS(lat, lon, days),
   ]);
 
   // Get location info
   const location = await reverseGeocode(lat, lon);
 
   // Calculate agreement
-  const validModels = [ecmwf, gfs, graphcast, nbm, hrrr, icon].filter((m): m is ModelForecast => m !== null);
+  const validModels = [ecmwf, gfs, graphcast, nbm, hrrr, icon, ecmwf_aifs].filter((m): m is ModelForecast => m !== null);
   const agreement = calculateAgreement(validModels);
 
   // Calculate snow timing (simplified)
@@ -205,7 +207,7 @@ export async function fetchAllModels(lat: number, lon: number, days: number = 7)
   return {
     location,
     generated: new Date().toISOString(),
-    models: { ecmwf, gfs, graphcast, nbm, hrrr, icon },
+    models: { ecmwf, gfs, graphcast, nbm, hrrr, icon, ecmwf_aifs },
     summary: {
       agreement,
       snowStart,

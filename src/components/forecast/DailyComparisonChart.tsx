@@ -21,6 +21,7 @@ interface DailyComparisonChartProps {
     nbm: ModelForecast | null;
     hrrr: ModelForecast | null;
     icon: ModelForecast | null;
+    ecmwf_aifs: ModelForecast | null;
   };
   metric: 'snow' | 'precip';
 }

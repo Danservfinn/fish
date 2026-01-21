@@ -1,4 +1,4 @@
-export type ModelName = 'ecmwf' | 'gfs' | 'graphcast' | 'nbm' | 'hrrr' | 'icon';
+export type ModelName = 'ecmwf' | 'gfs' | 'graphcast' | 'nbm' | 'hrrr' | 'icon' | 'ecmwf_aifs';
 
 export interface HourlyData {
   time: string;
@@ -59,6 +59,7 @@ export interface ForecastResponse {
     nbm: ModelForecast | null;
     hrrr: ModelForecast | null;
     icon: ModelForecast | null;
+    ecmwf_aifs: ModelForecast | null;
   };
   summary: ForecastSummary;
 }
@@ -106,6 +107,7 @@ export const MODEL_COLORS: Record<ModelName, string> = {
   nbm: 'hsl(45 100% 50%)',
   hrrr: 'hsl(38 92% 50%)',
   icon: 'hsl(280 65% 60%)',
+  ecmwf_aifs: 'hsl(190 85% 50%)',
 };
 
 export interface ModelInfoType {
@@ -172,5 +174,14 @@ export const MODEL_INFO: Record<ModelName, ModelInfoType> = {
     description: 'German weather model known for rapid updates and strong European accuracy.',
     sourceUrl: 'https://www.dwd.de/EN/research/weatherforecasting/num_modelling/01_num_weather_prediction_modells/icon_description.html',
     organization: 'DWD (Germany)',
+  },
+  ecmwf_aifs: {
+    name: 'ECMWF AIFS',
+    fullName: 'ECMWF Artificial Intelligence Forecast System',
+    resolution: '25km',
+    range: '10 days',
+    description: 'ECMWF\'s ML-based weather model using deep learning trained on 40+ years of ERA5 reanalysis data.',
+    sourceUrl: 'https://www.ecmwf.int/en/forecasts/documentation-and-support/aifs',
+    organization: 'ECMWF (AI)',
   },
 };
