@@ -7,6 +7,12 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #24079 | 12:44 AM | 🔵 | Empty CLAUDE.md Documentation File in Map Components | ~197 |
+| #24053 | 12:39 AM | 🔵 | Radar Controls Component with Layer and Animation Management | ~414 |
+| #24052 | " | 🔴 | RadarControls Component JSX Structure Fix | ~89 |
+| #24051 | " | 🔵 | Radar Controls Component with Timestamp Display | ~295 |
+| #24050 | " | ✅ | RadarControls Component Wrapped with TooltipProvider | ~318 |
+| #24049 | " | ✅ | RadarControls Import Addition for Tooltip Provider | ~223 |
 | #24022 | 12:31 AM | 🔵 | MapContainer Implementation with Dual Mode Precipitation and Radar Visualization | ~549 |
 | #24021 | " | 🔴 | Multiple Unused Variables in MapContainer Component | ~338 |
 | #24020 | " | ✅ | MapContainer State Initialization for Radar Feature | ~449 |
@@ -21,10 +27,4 @@
 | #24000 | " | 🔴 | ESLint Unused Variable Warnings in PrecipitationLayer Component | ~258 |
 | #23997 | " | 🔄 | Removed Unused Color Stops Memoization from PrecipitationLayer | ~318 |
 | #23995 | " | 🔵 | PrecipitationLayer Component with Map Visualization | ~356 |
-| #23993 | 12:28 AM | 🔴 | Build Errors in Map Precipitation Visualization Components | ~383 |
-| #23992 | " | 🟣 | MapContainer Enhanced with Precipitation Visualization and Mode Controls | ~552 |
-| #23989 | " | 🟣 | Map Controls UI Component for Precipitation Visualization | ~495 |
-| #23987 | 12:27 AM | 🟣 | Map Legend Component for Precipitation Visualization | ~392 |
-| #23985 | " | 🟣 | PrecipitationLayer Map Component for Weather Visualization | ~472 |
-| #23979 | 12:26 AM | 🔵 | MapContainer Component with Location Selection and Geolocation | ~410 |
 </claude-mem-context>

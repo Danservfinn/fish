@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MODEL_INFO, MODEL_COLORS, type ModelName, type ForecastResponse } from '@/types/forecast';
 import { formatSnow } from '@/lib/utils/format';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface ModelBreakdownCardProps {
   data: ForecastResponse;
@@ -31,65 +32,120 @@ export default function ModelBreakdownCard({ data, timePeriod }: ModelBreakdownC
   const snowValues = modelTotals.map(m => m.snowTotal);
   const minSnow = Math.min(...snowValues);
   const maxSnow = Math.max(...snowValues);
+  const avgSnow = snowValues.reduce((a, b) => a + b, 0) / snowValues.length;
   const spread = maxSnow - minSnow;
 
   // Determine confidence based on spread
   const confidence = spread < 2 ? 'HIGH' : spread < 5 ? 'MODERATE' : 'LOW';
-  const confidenceColor = confidence === 'HIGH' ? 'text-green-500' : confidence === 'MODERATE' ? 'text-yellow-500' : 'text-red-500';
+  const confidenceConfig = {
+    HIGH: {
+      textClass: 'text-emerald-600 dark:text-emerald-400',
+      bgClass: 'bg-emerald-500/10 dark:bg-emerald-500/15',
+    },
+    MODERATE: {
+      textClass: 'text-amber-600 dark:text-amber-400',
+      bgClass: 'bg-amber-500/10 dark:bg-amber-500/15',
+    },
+    LOW: {
+      textClass: 'text-red-600 dark:text-red-400',
+      bgClass: 'bg-red-500/10 dark:bg-red-500/15',
+    },
+  }[confidence];
 
   return (
-    <Card>
-      <CardHeader className="pb-2 px-3 md:px-4">
+    <Card className="border-border/50 shadow-sm">
+      <CardHeader className="pb-3 px-4 md:px-5">
         <CardTitle className="text-sm flex items-center justify-between">
-          <span>Model Breakdown</span>
-          <span className="text-xs text-muted-foreground">{timePeriod}</span>
+          <span className="font-semibold">Model Breakdown</span>
+          <span className="text-xs text-muted-foreground font-normal">{timePeriod}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-3 md:px-4 space-y-3">
-        {/* Summary */}
-        <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
-          <div>
-            <div className="text-xs text-muted-foreground">Snow Range</div>
-            <div className="font-semibold">{formatSnow(minSnow)} - {formatSnow(maxSnow)}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Confidence</div>
-            <div className={`font-semibold ${confidenceColor}`}>{confidence}</div>
-          </div>
-        </div>
-
-        {/* Model List */}
-        <div className="space-y-1.5">
-          {modelTotals.map(({ key, name, color, snowTotal, isAI, resolution }) => (
-            <div
-              key={key}
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary/50 transition-colors"
-            >
-              <div
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: color }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-sm">{name}</span>
-                  {isAI && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
-                      AI
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">{resolution}</div>
-              </div>
-              <div className="text-right">
-                <div className="font-mono font-semibold text-sm">{formatSnow(snowTotal)}</div>
-              </div>
+      <CardContent className="px-4 md:px-5 space-y-4">
+        {/* Summary Stats - Miller's Law: 3 key stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="text-center p-2.5 rounded-lg bg-muted/30">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
+              Range
             </div>
-          ))}
+            <div className="font-data text-sm font-semibold text-foreground">
+              {formatSnow(minSnow)} – {formatSnow(maxSnow)}
+            </div>
+          </div>
+          <div className="text-center p-2.5 rounded-lg bg-muted/30">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
+              Average
+            </div>
+            <div className="font-data text-sm font-semibold text-foreground">
+              {formatSnow(avgSnow)}
+            </div>
+          </div>
+          <div className={`text-center p-2.5 rounded-lg ${confidenceConfig.bgClass}`}>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
+              Confidence
+            </div>
+            <div className={`font-data text-sm font-semibold ${confidenceConfig.textClass}`}>
+              {confidence}
+            </div>
+          </div>
         </div>
 
-        {/* Legend */}
-        <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border">
-          Models sorted by snow total • AI models use machine learning
+        {/* Model List - Sorted by prediction */}
+        <div className="space-y-1">
+          {modelTotals.map(({ key, name, color, snowTotal, isAI, resolution }) => {
+            const deviation = snowTotal - avgSnow;
+            const isAbove = deviation > 0.5;
+            const isBelow = deviation < -0.5;
+
+            return (
+              <div
+                key={key}
+                className="
+                  flex items-center gap-3 p-2.5 rounded-lg
+                  hover:bg-muted/30 transition-colors duration-150
+                "
+              >
+                {/* Color indicator */}
+                <div
+                  className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-background shadow-sm"
+                  style={{ backgroundColor: color }}
+                />
+
+                {/* Model info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-sm text-foreground">{name}</span>
+                    {isAI && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium">
+                        AI
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">{resolution}</div>
+                </div>
+
+                {/* Trend indicator */}
+                <div className="flex items-center gap-1">
+                  {isAbove && <TrendingUp className="w-3.5 h-3.5 text-blue-500" />}
+                  {isBelow && <TrendingDown className="w-3.5 h-3.5 text-amber-500" />}
+                  {!isAbove && !isBelow && <Minus className="w-3.5 h-3.5 text-muted-foreground/50" />}
+                </div>
+
+                {/* Snow total */}
+                <div className="text-right min-w-[50px]">
+                  <div className="font-data font-semibold text-sm text-foreground">
+                    {formatSnow(snowTotal)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer note */}
+        <div className="pt-2 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground text-center">
+            Sorted by predicted snowfall • AI models use machine learning
+          </p>
         </div>
       </CardContent>
     </Card>

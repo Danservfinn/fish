@@ -95,33 +95,68 @@ export default function LocationSearch({ onLocationSelect }: LocationSearchProps
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-4 md:h-4 text-muted-foreground" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           type="text"
           placeholder="Search location..."
           value={query}
           onChange={handleInputChange}
           onFocus={() => results.length > 0 && setIsOpen(true)}
-          className="pl-10 pr-10 h-11 md:h-10 text-base md:text-sm bg-background/95 backdrop-blur-sm border-border/50"
+          className="
+            pl-10 pr-10 h-11 md:h-10
+            text-base md:text-sm
+            bg-card/95 dark:bg-card/90
+            backdrop-blur-xl
+            border-border/50
+            shadow-lg shadow-black/5 dark:shadow-black/20
+            placeholder:text-muted-foreground/60
+            focus:border-primary/50 focus:ring-primary/20
+            rounded-xl
+          "
         />
         {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+          <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
         )}
       </div>
 
       {/* Results dropdown */}
       {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
-          {results.map((result) => (
+        <div
+          className="
+            absolute top-full left-0 right-0 mt-2
+            bg-card/98 dark:bg-card/95
+            backdrop-blur-xl
+            border border-border/50
+            rounded-xl
+            shadow-xl shadow-black/10 dark:shadow-black/30
+            overflow-hidden
+            z-50
+            max-h-[60vh] overflow-y-auto
+          "
+        >
+          {results.map((result, index) => (
             <button
               key={result.id}
               onClick={() => handleSelect(result)}
-              className="w-full px-4 py-4 md:py-3 text-left hover:bg-accent active:bg-accent transition-colors flex items-start gap-3 min-h-[56px] md:min-h-0 touch-manipulation"
+              className={`
+                w-full px-4 py-3.5 md:py-3
+                text-left
+                hover:bg-primary/5 active:bg-primary/10
+                transition-colors duration-150
+                flex items-start gap-3
+                min-h-[56px] md:min-h-0
+                touch-manipulation
+                ${index !== results.length - 1 ? 'border-b border-border/30' : ''}
+              `}
             >
-              <MapPin className="w-5 h-5 md:w-4 md:h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="font-medium text-base md:text-sm truncate">{result.name}</div>
-                <div className="text-sm md:text-xs text-muted-foreground truncate">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <MapPin className="w-4 h-4 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm text-foreground truncate">
+                  {result.name}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
                   {[result.admin1, result.country].filter(Boolean).join(', ')}
                 </div>
               </div>

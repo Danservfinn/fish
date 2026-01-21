@@ -88,10 +88,12 @@ export default function DailyComparisonChart({ models, metric }: DailyComparison
             contentStyle={{
               backgroundColor: 'hsl(var(--card))',
               border: '1px solid hsl(var(--border))',
-              borderRadius: '8px',
+              borderRadius: '10px',
               fontSize: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             }}
-            labelStyle={{ color: 'hsl(var(--foreground))' }}
+            labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+            cursor={{ fill: 'hsl(var(--muted) / 0.3)' }}
             formatter={(value, name) => {
               const displayName = MODEL_INFO[name as ModelName]?.name || String(name);
               if (value === null || value === undefined) return ['--', displayName];
@@ -100,7 +102,11 @@ export default function DailyComparisonChart({ models, metric }: DailyComparison
           />
           <Legend
             wrapperStyle={{ fontSize: 10, paddingTop: '8px' }}
-            formatter={(value: string) => MODEL_INFO[value as ModelName]?.name || value}
+            formatter={(value: string) => (
+              <span style={{ color: 'hsl(var(--foreground))' }}>
+                {MODEL_INFO[value as ModelName]?.name || value}
+              </span>
+            )}
           />
 
           {activeModels.map((modelKey) => (
@@ -108,8 +114,8 @@ export default function DailyComparisonChart({ models, metric }: DailyComparison
               key={modelKey}
               dataKey={modelKey}
               fill={MODEL_COLORS[modelKey]}
-              radius={[2, 2, 0, 0]}
-              maxBarSize={18}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={20}
             />
           ))}
         </BarChart>

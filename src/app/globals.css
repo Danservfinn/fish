@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -22,54 +24,202 @@
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
-}
 
+  /* Paper texture overlay */
+  .paper-texture {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
 
-
-@layer base {
-  /* Dark theme as default */
-  :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 100% 52%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 210 100% 52%;
-    --radius: 0.5rem;
-
-    /* Model colors for charts */
-    --chart-ecmwf: 210 100% 52%;
-    --chart-gfs: 142 71% 45%;
-    --chart-hrrr: 38 92% 50%;
-    --chart-icon: 280 65% 60%;
-    --chart-1: 210 100% 52%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+  /* Topographic accent line */
+  .topo-line {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.1) 20%,
+      hsl(var(--primary) / 0.3) 50%,
+      hsl(var(--primary) / 0.1) 80%,
+      transparent 100%
+    );
+    height: 1px;
   }
 }
 
-
-
 @layer base {
+  /* ============================================
+     LIGHT THEME (Default) - Alpine Clarity
+     Warm cream backgrounds, deep slate typography
+     ============================================ */
+  :root {
+    --background: 42 33% 97%;
+    --foreground: 220 20% 18%;
+    --card: 40 25% 99%;
+    --card-foreground: 220 20% 18%;
+    --popover: 40 25% 99%;
+    --popover-foreground: 220 20% 18%;
+    --primary: 205 78% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 42 20% 92%;
+    --secondary-foreground: 220 20% 25%;
+    --muted: 42 15% 90%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 42 30% 88%;
+    --accent-foreground: 220 20% 18%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 42 20% 85%;
+    --input: 42 20% 90%;
+    --ring: 205 78% 42%;
+    --radius: 0.625rem;
+
+    /* Model colors - adjusted for light theme visibility */
+    --chart-ecmwf: 205 78% 42%;
+    --chart-gfs: 152 55% 38%;
+    --chart-graphcast: 330 75% 48%;
+    --chart-nbm: 38 92% 45%;
+    --chart-hrrr: 25 85% 50%;
+    --chart-icon: 270 55% 52%;
+    --chart-1: 205 78% 42%;
+    --chart-2: 152 55% 38%;
+    --chart-3: 38 92% 45%;
+    --chart-4: 270 55% 52%;
+    --chart-5: 330 75% 48%;
+
+    /* Confidence colors - light theme */
+    --confidence-high: 152 55% 38%;
+    --confidence-moderate: 38 92% 45%;
+    --confidence-low: 0 72% 51%;
+
+    /* Surface variations */
+    --surface-elevated: 40 30% 100%;
+    --surface-sunken: 42 20% 94%;
+  }
+
+  /* ============================================
+     DARK THEME - Softer Midnight
+     Slightly lighter than before, warmer blacks
+     ============================================ */
+  .dark {
+    --background: 225 25% 12%;
+    --foreground: 42 25% 95%;
+    --card: 225 22% 15%;
+    --card-foreground: 42 25% 95%;
+    --popover: 225 22% 15%;
+    --popover-foreground: 42 25% 95%;
+    --primary: 200 90% 58%;
+    --primary-foreground: 225 25% 10%;
+    --secondary: 225 18% 22%;
+    --secondary-foreground: 42 25% 95%;
+    --muted: 225 15% 25%;
+    --muted-foreground: 42 15% 60%;
+    --accent: 225 18% 22%;
+    --accent-foreground: 42 25% 95%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 225 15% 25%;
+    --input: 225 15% 22%;
+    --ring: 200 90% 58%;
+
+    /* Model colors - adjusted for dark theme */
+    --chart-ecmwf: 200 90% 58%;
+    --chart-gfs: 152 65% 52%;
+    --chart-graphcast: 330 85% 62%;
+    --chart-nbm: 42 95% 55%;
+    --chart-hrrr: 28 90% 55%;
+    --chart-icon: 275 65% 65%;
+    --chart-1: 200 90% 58%;
+    --chart-2: 152 65% 52%;
+    --chart-3: 42 95% 55%;
+    --chart-4: 275 65% 65%;
+    --chart-5: 330 85% 62%;
+
+    /* Confidence colors - dark theme */
+    --confidence-high: 152 65% 52%;
+    --confidence-moderate: 42 95% 55%;
+    --confidence-low: 0 62% 55%;
+
+    /* Surface variations */
+    --surface-elevated: 225 22% 18%;
+    --surface-sunken: 225 25% 10%;
+  }
+
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   }
+
+  /* Typography hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Data displays use mono-like precision */
+  .font-data {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    @apply font-medium;
+  }
+}
+
+/* Smooth theme transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable transitions for specific elements that shouldn't animate */
+.no-transition,
+.no-transition * {
+  transition: none !important;
+}
+
+/* Map styling - needs hard edges */
+.maplibregl-map,
+.maplibregl-canvas {
+  transition: none !important;
+}
+
+/* Custom scrollbar for light theme */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Selection colors */
+::selection {
+  background-color: hsl(var(--primary) / 0.2);
+  color: hsl(var(--foreground));
 }

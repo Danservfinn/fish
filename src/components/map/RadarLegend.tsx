@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { PRECIPITATION_COLORS, PRECIPITATION_LABELS } from '@/constants/precipitation';
 
 interface RadarLegendProps {
@@ -24,42 +22,56 @@ export default function RadarLegend({ isVisible }: RadarLegendProps) {
   ];
 
   return (
-    <Card className="bg-background/90 backdrop-blur-sm border-border/50">
-      <CardContent className="p-2">
-        <div className="flex items-center justify-between gap-2 mb-2">
+    <div
+      className="
+        rounded-xl overflow-hidden
+        bg-card/95 dark:bg-card/90
+        backdrop-blur-xl
+        border border-border/50
+        shadow-lg shadow-black/5 dark:shadow-black/20
+      "
+    >
+      <div className="p-3">
+        <div className="flex items-center justify-between gap-3 mb-2">
           <span className="text-xs font-medium text-muted-foreground">
             Precipitation (mm/hr)
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5"
+          <button
             onClick={() => setIsCollapsed(!isCollapsed)}
+            className="
+              w-6 h-6 rounded-md
+              flex items-center justify-center
+              hover:bg-muted/50
+              transition-colors
+            "
           >
             {isCollapsed ? (
-              <ChevronUp className="h-3 w-3" />
+              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
             ) : (
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             )}
-          </Button>
+          </button>
         </div>
 
         {!isCollapsed && (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {colorEntries.map(({ key, color }) => (
-              <div key={key} className="flex items-center gap-2">
+              <div key={key} className="flex items-center gap-2.5">
                 <div
-                  className="w-4 h-3 rounded-sm"
-                  style={{ backgroundColor: color }}
+                  className="w-5 h-3.5 rounded-sm"
+                  style={{
+                    backgroundColor: color,
+                    boxShadow: `0 1px 2px ${color}40`,
+                  }}
                 />
-                <span className="text-xs text-muted-foreground">
+                <span className="font-data text-[11px] text-foreground/80">
                   {PRECIPITATION_LABELS[key]}
                 </span>
               </div>
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

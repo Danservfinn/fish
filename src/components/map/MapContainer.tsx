@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Map, { Marker, NavigationControl, GeolocateControl } from 'react-map-gl/maplibre';
 import type { MapLayerMouseEvent, ViewStateChangeEvent } from 'react-map-gl/maplibre';
@@ -21,8 +21,11 @@ import type { PrecipMode } from '@/types/forecast';
 import type { RadarLayerState, PrecipitationProperties } from '@/types/precipitation';
 import { DEFAULT_RADAR_STATE } from '@/constants/precipitation';
 
-// CartoDB Dark Matter - free, no API key needed
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// Map styles for light and dark themes
+const MAP_STYLES = {
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+};
 
 interface MapContainerProps {
   selectedLocation: { lat: number; lon: number } | null;
@@ -31,6 +34,26 @@ interface MapContainerProps {
 export default function MapContainer({ selectedLocation }: MapContainerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Detect theme from DOM
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    // Check initial theme
+    setIsDark(document.documentElement.classList.contains('dark'));
+
+    // Watch for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          setIsDark(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
 
   // Map state
   const [viewState, setViewState] = useState({
@@ -135,8 +158,11 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
     }));
   }, []);
 
+  // Theme-aware marker colors
+  const markerColor = isDark ? '#38bdf8' : '#0284c7'; // sky-400 vs sky-600
+
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 no-transition">
       {/* Search bar */}
       <div className="absolute top-4 left-4 right-4 md:right-auto md:w-80 z-10">
         <LocationSearch onLocationSelect={handleLocationSelect} />
@@ -180,7 +206,7 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
         onMove={evt => setViewState(evt.viewState)}
         onMoveEnd={handleMoveEnd}
         onClick={mapMode === 'live' ? handleRadarClick : handleMapClick}
-        mapStyle={MAP_STYLE}
+        mapStyle={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
         cursor="crosshair"
@@ -236,18 +262,18 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
               <div
                 className="absolute inset-0 -m-2 rounded-full animate-ping"
                 style={{
-                  background: 'radial-gradient(circle, rgba(6,182,212,0.4) 0%, transparent 70%)',
+                  background: `radial-gradient(circle, ${markerColor}40 0%, transparent 70%)`,
                   animationDuration: '2s',
                 }}
               />
               {/* Pin */}
               <MapPin
-                className="w-8 h-8 drop-shadow-lg"
+                className="w-8 h-8"
                 style={{
-                  color: '#06b6d4',
-                  filter: 'drop-shadow(0 0 8px rgba(6,182,212,0.5))',
+                  color: markerColor,
+                  filter: `drop-shadow(0 2px 4px ${markerColor}50)`,
                 }}
-                fill="rgba(6,182,212,0.2)"
+                fill={`${markerColor}20`}
               />
             </div>
           </Marker>
@@ -267,7 +293,7 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
       )}
 
       {/* Attribution */}
-      <div className="absolute bottom-2 left-2 text-xs text-white/30">
+      <div className="absolute bottom-2 left-2 text-xs text-muted-foreground/50">
         © CartoDB © OpenStreetMap • Weather data: Open-Meteo
       </div>
 
@@ -276,17 +302,17 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
         precipitationData.every(cell => cell.rate < 0.1) && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
-            className="px-6 py-4 rounded-2xl text-center"
-            style={{
-              background: 'linear-gradient(135deg, rgba(15,15,20,0.9) 0%, rgba(25,25,35,0.85) 100%)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
-            }}
+            className="
+              px-6 py-4 rounded-2xl text-center
+              bg-card/95 dark:bg-card/90
+              backdrop-blur-xl
+              border border-border/50
+              shadow-xl shadow-black/5 dark:shadow-black/20
+            "
           >
             <div className="text-2xl mb-2">☀️</div>
-            <div className="text-sm font-semibold text-white/80">Clear Conditions</div>
-            <div className="text-xs text-white/40 mt-1">No precipitation detected</div>
+            <div className="text-sm font-semibold text-foreground">Clear Conditions</div>
+            <div className="text-xs text-muted-foreground mt-1">No precipitation detected</div>
           </div>
         </div>
       )}
