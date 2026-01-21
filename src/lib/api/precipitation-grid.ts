@@ -23,64 +23,47 @@ export interface PrecipitationGrid {
 const API_BASE = 'https://api.open-meteo.com/v1';
 
 // Fetch precipitation data for a grid of points
+// Uses high-density sampling with heatmap interpolation for smooth visualization
 export async function fetchPrecipitationGrid(
   bounds: { north: number; south: number; east: number; west: number },
   days: number = 7,
   model: string = 'best_match',
   mode: PrecipMode = 'snow'
 ): Promise<PrecipitationGrid> {
-  // Calculate grid resolution based on area size
   const latSpan = bounds.north - bounds.south;
   const lonSpan = bounds.east - bounds.west;
 
-  // Adaptive resolution: fewer points for larger areas
-  let resolution: number;
-  if (latSpan > 20 || lonSpan > 30) {
-    resolution = 2; // ~222km cells for continent view
-  } else if (latSpan > 10 || lonSpan > 15) {
-    resolution = 1; // ~111km cells for region view
-  } else if (latSpan > 5 || lonSpan > 7) {
-    resolution = 0.5; // ~55km cells for state view
-  } else {
-    resolution = 0.25; // ~28km cells for local view
-  }
+  // Target ~400 points for smooth heatmap interpolation
+  // Grid is sqrt(400) = 20x20 points ideally
+  const targetPoints = 400;
+  const aspectRatio = lonSpan / latSpan;
+
+  // Calculate grid dimensions maintaining aspect ratio
+  const latCount = Math.ceil(Math.sqrt(targetPoints / aspectRatio));
+  const lonCount = Math.ceil(Math.sqrt(targetPoints * aspectRatio));
+
+  // Calculate resolution from counts
+  const latResolution = latSpan / Math.max(latCount - 1, 1);
+  const lonResolution = lonSpan / Math.max(lonCount - 1, 1);
+  const resolution = Math.min(latResolution, lonResolution);
 
   // Generate grid points
-  const latPoints: number[] = [];
-  const lonPoints: number[] = [];
+  const allCoords: Array<{ lat: number; lon: number }> = [];
 
-  for (let lat = bounds.south; lat <= bounds.north; lat += resolution) {
-    latPoints.push(Math.round(lat * 100) / 100);
-  }
-  for (let lon = bounds.west; lon <= bounds.east; lon += resolution) {
-    lonPoints.push(Math.round(lon * 100) / 100);
-  }
-
-  // Limit to reasonable number of API calls (max ~100 points)
-  const maxPoints = 100;
-  const totalPoints = latPoints.length * lonPoints.length;
-
-  if (totalPoints > maxPoints) {
-    // Increase resolution to reduce points
-    const factor = Math.ceil(Math.sqrt(totalPoints / maxPoints));
-    const newLatPoints = latPoints.filter((_, i) => i % factor === 0);
-    const newLonPoints = lonPoints.filter((_, i) => i % factor === 0);
-    latPoints.length = 0;
-    lonPoints.length = 0;
-    latPoints.push(...newLatPoints);
-    lonPoints.push(...newLonPoints);
+  for (let i = 0; i < latCount; i++) {
+    const lat = bounds.south + (i * latSpan / Math.max(latCount - 1, 1));
+    for (let j = 0; j < lonCount; j++) {
+      const lon = bounds.west + (j * lonSpan / Math.max(lonCount - 1, 1));
+      allCoords.push({
+        lat: Math.round(lat * 100) / 100,
+        lon: Math.round(lon * 100) / 100,
+      });
+    }
   }
 
   // Fetch data for all grid points in parallel (batched)
   const cells: GridCell[] = [];
-  const batchSize = 10;
-
-  const allCoords: Array<{ lat: number; lon: number }> = [];
-  for (const lat of latPoints) {
-    for (const lon of lonPoints) {
-      allCoords.push({ lat, lon });
-    }
-  }
+  const batchSize = 20; // Increased batch size for faster fetching
 
   // Process in batches
   for (let i = 0; i < allCoords.length; i += batchSize) {

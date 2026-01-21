@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Source, Layer, useMap } from 'react-map-gl/maplibre';
-import type { FillLayerSpecification, LineLayerSpecification } from 'maplibre-gl';
+import type { RasterLayerSpecification } from 'maplibre-gl';
 import type { PrecipMode } from '@/types/forecast';
 import {
   fetchPrecipitationGrid,
-  getColorForValue,
   type PrecipitationGrid,
 } from '@/lib/api/precipitation-grid';
+import { renderPrecipitationImage } from '@/lib/utils/precipitation-raster';
+import type { DataPoint } from '@/lib/utils/idw-interpolation';
 
 interface PrecipitationLayerProps {
   mode: PrecipMode;
@@ -17,37 +18,9 @@ interface PrecipitationLayerProps {
   visible: boolean;
 }
 
-// Create a GeoJSON feature for a grid cell
-function createCellFeature(
-  lat: number,
-  lon: number,
-  value: number,
-  resolution: number,
-  mode: PrecipMode
-) {
-  const halfRes = resolution / 2;
-  const color = getColorForValue(value, mode);
-
-  return {
-    type: 'Feature' as const,
-    properties: {
-      value,
-      color,
-      lat,
-      lon,
-    },
-    geometry: {
-      type: 'Polygon' as const,
-      coordinates: [[
-        [lon - halfRes, lat - halfRes],
-        [lon + halfRes, lat - halfRes],
-        [lon + halfRes, lat + halfRes],
-        [lon - halfRes, lat + halfRes],
-        [lon - halfRes, lat - halfRes],
-      ]],
-    },
-  };
-}
+// Raster resolution for canvas rendering
+const RASTER_WIDTH = 512;
+const RASTER_HEIGHT = 512;
 
 export default function PrecipitationLayer({
   mode,
@@ -57,6 +30,7 @@ export default function PrecipitationLayer({
 }: PrecipitationLayerProps) {
   const { current: map } = useMap();
   const [grid, setGrid] = useState<PrecipitationGrid | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [bounds, setBounds] = useState<{
     north: number;
@@ -64,6 +38,7 @@ export default function PrecipitationLayer({
     east: number;
     west: number;
   } | null>(null);
+  const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update bounds when map moves
   const updateBounds = useCallback(() => {
@@ -113,56 +88,58 @@ export default function PrecipitationLayer({
     return () => clearTimeout(timeoutId);
   }, [bounds, days, model, mode, visible]);
 
-  // Generate GeoJSON from grid data
-  const geojsonData = useMemo(() => {
-    if (!grid) {
-      return { type: 'FeatureCollection' as const, features: [] };
+  // Render image when grid data changes
+  useEffect(() => {
+    if (!grid || !bounds || grid.cells.length === 0) {
+      setImageUrl(null);
+      return;
     }
 
-    const features = grid.cells
-      .filter(cell => cell.value > (mode === 'snow' ? 0.1 : 0.01))
-      .map(cell =>
-        createCellFeature(cell.lat, cell.lon, cell.value, grid.resolution, mode)
-      );
+    // Clear any pending render
+    if (renderTimeoutRef.current) {
+      clearTimeout(renderTimeoutRef.current);
+    }
 
-    return {
-      type: 'FeatureCollection' as const,
-      features,
+    // Debounce rendering to avoid excessive canvas operations
+    renderTimeoutRef.current = setTimeout(() => {
+      try {
+        // Convert grid cells to DataPoints for interpolation
+        const points: DataPoint[] = grid.cells.map(cell => ({
+          x: cell.lon,
+          y: cell.lat,
+          value: cell.value,
+        }));
+
+        // Render the interpolated image
+        const url = renderPrecipitationImage(
+          points,
+          bounds,
+          RASTER_WIDTH,
+          RASTER_HEIGHT,
+          mode
+        );
+
+        setImageUrl(url);
+      } catch (error) {
+        console.error('Failed to render precipitation image:', error);
+      }
+    }, 100);
+
+    return () => {
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current);
+      }
     };
-  }, [grid, mode]);
+  }, [grid, bounds, mode]);
 
-  const fillLayer: FillLayerSpecification = {
-    id: 'precipitation-fill',
-    type: 'fill',
-    source: 'precipitation',
+  // Raster layer for rendering the image
+  const rasterLayer: RasterLayerSpecification = {
+    id: 'precipitation-raster',
+    type: 'raster',
+    source: 'precipitation-image',
     paint: {
-      'fill-color': ['get', 'color'],
-      'fill-opacity': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        3, 0.6,
-        6, 0.7,
-        10, 0.8,
-      ],
-    },
-  };
-
-  const outlineLayer: LineLayerSpecification = {
-    id: 'precipitation-outline',
-    type: 'line',
-    source: 'precipitation',
-    paint: {
-      'line-color': ['get', 'color'],
-      'line-width': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        3, 0,
-        8, 0.5,
-        12, 1,
-      ],
-      'line-opacity': 0.3,
+      'raster-opacity': 0.85,
+      'raster-fade-duration': 300,
     },
   };
 
@@ -170,10 +147,22 @@ export default function PrecipitationLayer({
 
   return (
     <>
-      <Source id="precipitation" type="geojson" data={geojsonData}>
-        <Layer {...fillLayer} />
-        <Layer {...outlineLayer} />
-      </Source>
+      {/* Precipitation raster overlay */}
+      {imageUrl && bounds && (
+        <Source
+          id="precipitation-image"
+          type="image"
+          url={imageUrl}
+          coordinates={[
+            [bounds.west, bounds.north], // top-left
+            [bounds.east, bounds.north], // top-right
+            [bounds.east, bounds.south], // bottom-right
+            [bounds.west, bounds.south], // bottom-left
+          ]}
+        >
+          <Layer {...rasterLayer} />
+        </Source>
+      )}
 
       {/* Loading indicator */}
       {isLoading && (
