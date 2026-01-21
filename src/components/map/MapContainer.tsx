@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Map, { Marker, NavigationControl, GeolocateControl } from 'react-map-gl/maplibre';
-import type { MapLayerMouseEvent, ViewStateChangeEvent } from 'react-map-gl/maplibre';
+import type { MapLayerMouseEvent, ViewStateChangeEvent, MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapPin } from 'lucide-react';
 import LocationSearch from './LocationSearch';
@@ -34,6 +34,7 @@ interface MapContainerProps {
 export default function MapContainer({ selectedLocation }: MapContainerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const mapRef = useRef<MapRef>(null);
 
   // Detect theme from DOM
   const [isDark, setIsDark] = useState(false);
@@ -88,6 +89,27 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
     toggle: togglePlay,
     setFrame,
   } = useRadarAnimation(precipitationData, grid?.resolution ?? 1);
+
+  // Trigger initial grid update when switching to Live mode
+  useEffect(() => {
+    if (mapMode !== 'live') return;
+
+    const map = mapRef.current;
+    if (!map) return;
+
+    const bounds = map.getBounds();
+    if (bounds) {
+      updateGrid(
+        {
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        },
+        viewState.zoom
+      );
+    }
+  }, [mapMode, updateGrid, viewState.zoom]);
 
   const handleMapClick = useCallback((event: { lngLat: { lng: number; lat: number } }) => {
     const { lng, lat } = event.lngLat;
@@ -202,6 +224,7 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
 
       {/* Map */}
       <Map
+        ref={mapRef}
         {...viewState}
         onMove={evt => setViewState(evt.viewState)}
         onMoveEnd={handleMoveEnd}
