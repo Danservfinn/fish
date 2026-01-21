@@ -202,7 +202,7 @@ export default function MapContainer({ selectedLocation }: MapContainerProps) {
 
       {/* Radar Controls (for live mode) */}
       {mapMode === 'live' && (
-        <div className="absolute top-20 left-4 z-10">
+        <div className="absolute top-52 left-4 z-10">
           <RadarControls
             isVisible={radarVisible}
             opacity={radarOpacity}
