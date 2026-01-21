@@ -29,11 +29,28 @@ Compare forecasts from 6 different weather models:
 - Animation with historical frames
 - Click-for-details popup
 
+### Theme Support
+- Light theme (default): Warm cream backgrounds, deep slate typography
+- Dark theme: Softer midnight aesthetic
+- System theme detection
+- Toggle between themes via sun/moon icon
+
+### Miller's Law Design
+UI organized into 7 cognitive chunks for optimal information processing:
+1. Location context header
+2. Time/type controls
+3. Model agreement summary
+4. Forecast visualization chart
+5. Detailed model breakdown
+6. Model legend grid
+7. Footer actions
+
 ### Interactive Map
 - Click anywhere to get forecasts for that location
 - Geolocation support for current position
 - Location search with autocomplete
 - Responsive design (desktop + mobile)
+- Theme-aware map styles (Positron light / Dark Matter)
 
 ## Tech Stack
 
@@ -70,6 +87,7 @@ src/
 ├── components/
 │   ├── forecast/           # Forecast panel, charts, model comparison
 │   ├── map/                # Map, radar overlay, precipitation layers
+│   ├── theme/              # ThemeProvider, ThemeToggle
 │   └── ui/                 # shadcn/ui components
 ├── lib/
 │   ├── api/                # Open-Meteo API clients
